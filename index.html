@@ -1,20 +1,179 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>双人五子棋游戏</title>
-    <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lincoln-lcl-鲁成乐个人游戏网站实验-双人五子棋</title>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f7e6c4;
+    font-family: Arial, sans-serif;
+  }
+  canvas {
+    border: 2px solid #5a3d2b;
+    background-image: radial-gradient(circle, #dab98f, #f7e6c4);
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3);
+  }
+  h1 {
+    color: #5a3d2b;
+    margin-bottom: 20px;
+  }
+  button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #5a3d2b;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background-color: #3d2618;
+  }
+</style>
 </head>
 <body>
-    <div class="chessboard" id="chessboard">
-        <!-- 棋盘格子将通过JavaScript动态生成 -->
-    </div>
-    <div class="message" id="message"></div>
+<h1>lincoln-lcl-鲁成乐个人游戏网站实验-双人五子棋</h1>
+<canvas id="board" width="600" height="600"></canvas>
+<button id="restartButton">重新开始</button>
 
-    <script src="script.js"></script>
-    <script src='https://blog.freeblock.cn/plugins/RonanTheme.js'></script><script type='text/javascript'>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src='https://www.clarity.ms/tag/'+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, 'clarity', 'script', 'pss6qz1yjn');</script><script async src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1948001195111241'crossorigin='anonymous'></script>
-    </br>
-    <h3>lincoln-lcl-鲁成乐个人游戏网站实验</h3>
+<script>
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+const restartButton = document.getElementById('restartButton');
+
+const boardSize = 15; // 棋盘大小 15x15
+const cellSize = canvas.width / boardSize;
+
+let board = Array.from({ length: boardSize }, () => Array(boardSize).fill(null));
+let currentPlayer = 'black'; // 当前玩家，黑棋先手
+
+// 绘制棋盘
+function drawBoard() {
+  for (let i = 0; i < boardSize; i++) {
+    ctx.beginPath();
+    ctx.moveTo(cellSize / 2 + i * cellSize, cellSize / 2);
+    ctx.lineTo(cellSize / 2 + i * cellSize, canvas.height - cellSize / 2);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(cellSize / 2, cellSize / 2 + i * cellSize);
+    ctx.lineTo(canvas.width - cellSize / 2, cellSize / 2 + i * cellSize);
+    ctx.stroke();
+  }
+
+  // 绘制星位
+  const starPositions = [3, 7, 11];
+  starPositions.forEach(x => {
+    starPositions.forEach(y => {
+      ctx.beginPath();
+      ctx.arc(
+        cellSize / 2 + x * cellSize,
+        cellSize / 2 + y * cellSize,
+        5,
+        0,
+        Math.PI * 2
+      );
+      ctx.fillStyle = '#5a3d2b';
+      ctx.fill();
+    });
+  });
+}
+
+// 绘制棋子
+function drawPiece(x, y, color) {
+  ctx.beginPath();
+  ctx.arc(
+    cellSize / 2 + x * cellSize,
+    cellSize / 2 + y * cellSize,
+    cellSize / 2 - 2,
+    0,
+    Math.PI * 2
+  );
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+// 检查胜利条件
+function checkWin(x, y, player) {
+  const directions = [
+    { dx: 1, dy: 0 },  // 水平
+    { dx: 0, dy: 1 },  // 垂直
+    { dx: 1, dy: 1 },  // 主对角线
+    { dx: 1, dy: -1 }  // 副对角线
+  ];
+
+  for (let { dx, dy } of directions) {
+    let count = 1;
+    for (let step = 1; step < 5; step++) {
+      const newX = x + step * dx;
+      const newY = y + step * dy;
+      if (newX >= 0 && newX < boardSize && newY >= 0 && newY < boardSize && board[newX][newY] === player) {
+        count++;
+      } else {
+        break;
+      }
+    }
+    for (let step = 1; step < 5; step++) {
+      const newX = x - step * dx;
+      const newY = y - step * dy;
+      if (newX >= 0 && newX < boardSize && newY >= 0 && newY < boardSize && board[newX][newY] === player) {
+        count++;
+      } else {
+        break;
+      }
+    }
+    if (count >= 5) return true;
+  }
+  return false;
+}
+
+// 处理点击事件
+canvas.addEventListener('click', (event) => {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = event.clientX - rect.left;
+  const mouseY = event.clientY - rect.top;
+
+  const x = Math.floor(mouseX / cellSize);
+  const y = Math.floor(mouseY / cellSize);
+
+  if (board[x][y] !== null) return; // 如果该位置已经有棋子，则忽略
+
+  board[x][y] = currentPlayer;
+  drawPiece(x, y, currentPlayer);
+
+  if (checkWin(x, y, currentPlayer)) {
+    setTimeout(() => alert(`${currentPlayer === 'black' ? '黑棋' : '白棋'}获胜！`), 100);
+    return;
+  }
+
+  currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+});
+
+// 重置游戏
+function resetGame() {
+  board = Array.from({ length: boardSize }, () => Array(boardSize).fill(null));
+  currentPlayer = 'black';
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBoard();
+}
+
+// 初始化游戏
+drawBoard();
+
+// 绑定重新开始按钮
+restartButton.addEventListener('click', resetGame);
+</script>
 </body>
 </html>
